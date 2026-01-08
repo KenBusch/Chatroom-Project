@@ -35,12 +35,24 @@ firebase.auth().onAuthStateChanged(async function(user) {
 
   
     // 🔥🔥🔥Query Database structure to pull information for use in populating chatroom browser list🔥🔥🔥
-        // Build the URL for our chatroomdata API
-        let url = `/.netlify/functions/chatroomdata`
-        // Fetch the url, wait for a response, store the response in memory
-        let response = await fetch(url)
-        // Ask for the json-formatted data from the response, wait for the data, store it in memory
-        let json = await response.json()
+        // Establish a connection to Firestore
+        let db = firebase.firestore()
+        // Query all chatrooms from Firestore
+        let chatroomsQuery = await db.collection('chatrooms').get()
+        let chatrooms = chatroomsQuery.docs
+
+        // Build the JSON array with chatroom data
+        let json = []
+        for (let i = 0; i < chatrooms.length; i++) {
+          let chatroomData = chatrooms[i].data()
+          // Count messages for this chatroom
+          let messagesQuery = await db.collection('messages').where('chatroom', '==', chatroomData.roomName).get()
+          json.push({
+            id: chatrooms[i].id,
+            roomName: chatroomData.roomName,
+            numberOfPosts: messagesQuery.size
+          })
+        }
     // 🔥🔥🔥Query Database structure to pull information for use in populating chatroom browser list ends here🔥🔥🔥
 
 
@@ -87,14 +99,13 @@ firebase.auth().onAuthStateChanged(async function(user) {
         if (newChatroomName.length > 0) {
 
           //checks to see if the room already exists
-          if(window.find(newChatroomName) == false){         
-          // - Construct a URL to send user to new chatroom
-          // Build the URL for our create new chatroom API
-          let url = `/.netlify/functions/createroom?chatroomname=${newChatroomName}`
-          //console.log(url)
-          // Fetch the url, wait for a response, store the response in memory
-          let response = fetch(url)
-          // refresh the page
+          if(window.find(newChatroomName) == false){
+          // - Create new chatroom in Firestore
+          let db = firebase.firestore()
+          await db.collection('chatrooms').add({
+            roomName: newChatroomName
+          })
+          // Navigate to the new chatroom
           location.replace(`chatroom.html?chatroomname=${newChatroomName}`)
           //what to do if the typed in room already exists
           } 

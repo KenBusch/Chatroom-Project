@@ -2,3 +2,10 @@
 .netlify
 package-lock.json
 node_modules
+
+# Firebase
+.firebase/
+firebase-debug.log
+firestore-debug.log
+ui-debug.log
+service-account-key.json
