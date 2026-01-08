@@ -26,11 +26,6 @@ jobs:
       - name: Create service account key file
         run: echo '${{ secrets.FIREBASE_SERVICE_ACCOUNT }}' > ${{ github.workspace }}/service-account-key.json
 
-      - name: Authenticate with Google Cloud
-        run: |
-          gcloud auth activate-service-account --key-file=${{ github.workspace }}/service-account-key.json
-          gcloud config set project chatroom-app-3d4f2
-
       - name: Deploy to Firebase
         run: firebase deploy --non-interactive --project chatroom-app-3d4f2
         env:
