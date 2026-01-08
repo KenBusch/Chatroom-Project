@@ -33,12 +33,26 @@ firebase.auth().onAuthStateChanged(async function(user) {
   // 🔥🔥🔥Populate chatroom title from query string parameters🔥🔥🔥
 
     // 🔥🔥🔥Query Database structure to pull information for use in populating chatroom messages for a specific chatroom🔥🔥🔥
-        // Build the URL for our chatroomdata API
-        let url = `/.netlify/functions/messages?chatroomname=${chatroomName}`
-        // Fetch the url, wait for a response, store the response in memory
-        let response = await fetch(url)
-        // Ask for the json-formatted data from the response, wait for the data, store it in memory
-        let json = await response.json()
+        // Establish a connection to Firestore
+        let db = firebase.firestore()
+        // Query messages for this specific chatroom
+        let messagesQuery = await db.collection('messages').where('chatroom', '==', chatroomName).get()
+        let messages = messagesQuery.docs
+
+        // Build the JSON array with message data
+        let json = []
+        for (let i = 0; i < messages.length; i++) {
+          let messageData = messages[i].data()
+          json.push({
+            id: messages[i].id,
+            body: messageData.body,
+            chatroom: messageData.chatroom,
+            time: messageData.time,
+            userName: messageData.userName
+          })
+        }
+        // Sort messages by timestamp
+        json.sort((firstItem, secondItem) => firstItem.time - secondItem.time)
     // 🔥🔥🔥Query Database structure to pull information for use in populating chatroom messages ends here🔥🔥🔥
 
     // 🔥🔥🔥Populate chatroom messages from JSON🔥🔥🔥
@@ -85,11 +99,14 @@ firebase.auth().onAuthStateChanged(async function(user) {
       let body = bodyInput.value
       // - Check to see if the user entered anything; if so:
       if (body.length > 0) {
-        // - Construct a URL to create new chat and reload page
-        // Build the URL for our create new chatroom API
-        let url = `/.netlify/functions/createchat?userName=${user.displayName}&body=${body}&chatroomname=${chatroomName}`
-        // Fetch the url, wait for a response, store the response in memory
-        let response = fetch(url)
+        // - Create new message in Firestore
+        let db = firebase.firestore()
+        await db.collection('messages').add({
+          chatroom: chatroomName,
+          userName: user.displayName,
+          body: body,
+          time: firebase.firestore.FieldValue.serverTimestamp()
+        })
         // refresh the page with a 1 second delay to avoid beating the database update
         setTimeout(() => {location.reload()}, 1000);
         //lets the user know we're sad that they didn't type anything
